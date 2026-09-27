@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 BASE_DIR = Path(__file__).resolve().parent
-VOICE_ID = "Be3X8pg7kLN4vyyMC3QN"
+VOICE_ID = "hpp4J3VqNfWAUOO0d1Us"
 MODEL_ID = "eleven_multilingual_sts_v2"
 
 app = FastAPI(title="AI Hindi Female Voice Changer")
