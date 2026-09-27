@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<title>AI Hindi Female Voice Changer</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#f7f8ff;background:#0b1020}
+.wrap{width:min(680px,100%);margin:auto;padding:24px 16px 40px}.card{background:#12182d;border:1px solid #ffffff18;border-radius:28px;padding:24px;box-shadow:0 20px 70px #0008}
+.badge{display:inline-block;padding:7px 12px;border-radius:999px;background:#ffffff12;color:#cbd5ff;font-size:13px}
+h1{font-size:32px;line-height:1.1;margin:16px 0 10px}p{color:#b8c0d9;line-height:1.55}.timer{text-align:center;font-size:46px;font-variant-numeric:tabular-nums;margin:22px 0}
+button{width:100%;border:0;border-radius:17px;padding:17px 16px;margin-top:12px;font-size:17px;font-weight:700;color:#fff;background:#5b5ff5}
+button.stop{background:#d83b55}button:disabled{opacity:.45}.secondary{background:#242c49!important}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.status{margin:20px 0;padding:14px;border-radius:16px;background:#080c18;border:1px solid #ffffff12;color:#dfe5ff;min-height:50px}
+audio{width:100%;margin-top:18px}.small{font-size:13px;color:#8f99b8;margin-top:16px}.ok{color:#70e6a3}.error{color:#ff8b9d}
+</style>
+</head>
+<body>
+<main class="wrap"><section class="card">
+<span class="badge">AI Voice Changer • Hindi</span>
+<h1>🎙️ आपकी आवाज़ → Female Voice</h1>
+<p>Record करें, AI conversion चलाएँ और converted audio सुनें।</p>
+<div class="timer" id="timer">00:00</div>
+<div class="row">
+<button id="recordBtn">🔴 Start Recording</button>
+<button id="convertBtn" class="secondary" disabled>✨ Convert</button>
+</div>
+<div id="status" class="status">Ready — microphone permission दें और Record दबाएँ।</div>
+<audio id="player" controls playsinline></audio>
+<p class="small">API key browser में नहीं जाती; यह केवल server environment में रहती है।</p>
+</section></main>
+<script>
+const recordBtn=document.getElementById("recordBtn"),convertBtn=document.getElementById("convertBtn"),statusBox=document.getElementById("status"),timerEl=document.getElementById("timer"),player=document.getElementById("player");
+let recorder=null,stream=null,chunks=[],blob=null,timer=null,elapsed=0;
+function status(t,c=""){statusBox.textContent=t;statusBox.className="status "+c}
+function tick(){elapsed++;timerEl.textContent=String(Math.floor(elapsed/60)).padStart(2,"0")+":"+String(elapsed%60).padStart(2,"0")}
+function mime(){return ["audio/webm;codecs=opus","audio/webm","audio/mp4"].find(x=>MediaRecorder.isTypeSupported(x))||""}
+recordBtn.onclick=async()=>{
+ if(recorder&&recorder.state==="recording"){recorder.stop();clearInterval(timer);recordBtn.textContent="🔴 Start Recording";recordBtn.classList.remove("stop");status("Recording तैयार हो रही है…");return}
+ try{
+  stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+  chunks=[];blob=null;elapsed=0;timerEl.textContent="00:00";
+  const mt=mime();recorder=new MediaRecorder(stream,mt?{mimeType:mt}:undefined);
+  recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+  recorder.onstop=()=>{blob=new Blob(chunks,{type:recorder.mimeType||"audio/webm"});convertBtn.disabled=false;status("Recording तैयार है ✅ अब Convert दबाएँ.","ok");stream?.getTracks().forEach(t=>t.stop());stream=null};
+  recorder.start(250);timer=setInterval(tick,1000);recordBtn.textContent="⏹️ Stop Recording";recordBtn.classList.add("stop");convertBtn.disabled=true;status("Recording चल रही है… बोलिए 🎙️");
+ }catch(e){console.error(e);status("Microphone permission नहीं मिली। Browser settings में microphone Allow करें.","error")}
+};
+convertBtn.onclick=async()=>{
+ if(!blob)return;convertBtn.disabled=true;recordBtn.disabled=true;status("AI voice conversion चल रही है… ⏳");
+ const form=new FormData(),ext=blob.type.includes("mp4")?"m4a":"webm";form.append("audio",blob,`recording.${ext}`);
+ try{
+  const r=await fetch("/convert",{method:"POST",body:form});if(!r.ok){let m=await r.text();try{m=JSON.parse(m).detail||m}catch{}throw Error(m)}
+  const out=await r.blob();const url=URL.createObjectURL(out);player.src=url;player.load();
+  try{await player.play();status("Conversion complete और audio चल रहा है 🔊","ok")}catch{status("Conversion complete ✅ नीचे Play दबाएँ.","ok")}
+ }catch(e){console.error(e);status("Conversion failed ❌ "+e.message,"error")}
+ finally{convertBtn.disabled=false;recordBtn.disabled=false}
+};
+</script>
+</body>
+</html>
